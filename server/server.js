@@ -99,13 +99,15 @@ app.get('/lazada/callback', async (req, res) => {
     tokenParams.append('code', code);
     tokenParams.append('grant_type', 'authorization_code');
     tokenParams.append('timestamp', Date.now().toString());
+    tokenParams.append('sign_method', 'sha256');
     
     console.log('Token request params:', {
       app_key: appKey,
       app_secret: '[SECRET]',
       code: code,
       grant_type: 'authorization_code',
-      timestamp: Date.now().toString()
+      timestamp: Date.now().toString(),
+      sign_method: 'sha256'
     });
     
     const response = await axios({
