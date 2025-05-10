@@ -4,6 +4,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const axios = require('axios');
+const crypto = require('crypto');
 
 // Load environment variables
 dotenv.config();
@@ -92,13 +93,48 @@ app.get('/lazada/callback', async (req, res) => {
     console.log('Token request URL:', `${baseUrl}/auth/token/create`);
     
     // Exchange authorization code for access token
-    const response = await axios.post(`${baseUrl}/auth/token/create`, null, {
-      params: {
-        app_key: appKey,
-        app_secret: appSecret,
-        code: code,
-        grant_type: 'authorization_code'
+    const timestamp = Math.floor(Date.now() / 1000);
+    console.log('Using timestamp:', timestamp);
+    
+    // Create request params
+    const requestParams = {
+      app_key: appKey,
+      code: code,
+      grant_type: 'authorization_code',
+      timestamp: timestamp,
+      sign_method: 'sha256'
+    };
+    
+    // Generate signature
+    const createSignature = (params, secret) => {
+      // Sort parameters alphabetically
+      const sortedParams = Object.keys(params).sort().reduce((result, key) => {
+        result[key] = params[key];
+        return result;
+      }, {});
+      
+      // Create string to sign (concatenate key+value pairs)
+      let signString = '';
+      for (const key in sortedParams) {
+        signString += key + sortedParams[key];
       }
+      
+      // Create signature with app secret at beginning and end
+      const stringToSign = secret + signString + secret;
+      console.log('String to sign:', stringToSign);
+      
+      // Create uppercase hex MD5 hash
+      return crypto.createHash('sha256').update(stringToSign).digest('hex').toUpperCase();
+    };
+    
+    // Add signature to parameters
+    const signature = createSignature(requestParams, appSecret);
+    requestParams.sign = signature;
+    
+    console.log('Request parameters with signature:', requestParams);
+    
+    const response = await axios.post(`${baseUrl}/auth/token/create`, null, {
+      params: requestParams
     });
     
     console.log('Token response status:', response.status);
