@@ -93,21 +93,51 @@ app.get('/lazada/callback', async (req, res) => {
     console.log('Token request URL:', `${baseUrl}/auth/token/create`);
     
     // According to Lazada API docs, the token endpoint needs application/x-www-form-urlencoded data
-    const tokenParams = new URLSearchParams();
-    tokenParams.append('app_key', appKey);
-    tokenParams.append('app_secret', appSecret);
-    tokenParams.append('code', code);
-    tokenParams.append('grant_type', 'authorization_code');
-    tokenParams.append('timestamp', Date.now().toString());
-    tokenParams.append('sign_method', 'sha256');
+    const timestamp = Date.now().toString();
     
-    console.log('Token request params:', {
+    // Create the request parameters (excluding app_secret and sign)
+    const requestParams = {
       app_key: appKey,
-      app_secret: '[SECRET]',
       code: code,
       grant_type: 'authorization_code',
-      timestamp: Date.now().toString(),
+      timestamp: timestamp,
       sign_method: 'sha256'
+    };
+    
+    // Generate signature using HMAC-SHA256
+    const generateSignature = (params, secret) => {
+      // Sort parameters alphabetically by key
+      const sortedKeys = Object.keys(params).sort();
+      
+      // Create string to sign by concatenating key+value pairs
+      let signString = '';
+      for (const key of sortedKeys) {
+        signString += key + params[key];
+      }
+      
+      // Create signature using HMAC-SHA256
+      console.log('String to sign:', signString);
+      return crypto.createHmac('sha256', secret)
+        .update(signString)
+        .digest('hex')
+        .toUpperCase();
+    };
+    
+    // Generate and add the signature
+    const signature = generateSignature(requestParams, appSecret);
+    
+    // Create form data including all parameters plus signature
+    const tokenParams = new URLSearchParams();
+    Object.entries(requestParams).forEach(([key, value]) => {
+      tokenParams.append(key, value);
+    });
+    tokenParams.append('sign', signature);
+    tokenParams.append('app_secret', appSecret);
+    
+    console.log('Token request params:', {
+      ...requestParams,
+      app_secret: '[SECRET]',
+      sign: signature
     });
     
     const response = await axios({
