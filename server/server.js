@@ -99,7 +99,8 @@ app.get('/lazada/callback', async (req, res) => {
         app_key: appKey,
         app_secret: appSecret,
         code: code,
-        grant_type: 'authorization_code'
+        grant_type: 'authorization_code',
+        timestamp: Date.now().toString()
       }
     });
     
