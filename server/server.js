@@ -120,12 +120,15 @@ app.get('/lazada/callback', async (req, res) => {
         signString += key + sortedParams[key];
       }
       
-      // Create signature with app secret at beginning and end
-      const stringToSign = secret + signString + secret;
+      // Create signature using HMAC-SHA256
+      const stringToSign = signString;
       console.log('String to sign:', stringToSign);
       
-      // Create uppercase hex MD5 hash
-      return crypto.createHash('sha256').update(stringToSign).digest('hex').toUpperCase();
+      // Use HMAC-SHA256 with the app secret as the key
+      return crypto.createHmac('sha256', secret)
+        .update(stringToSign)
+        .digest('hex')
+        .toUpperCase();
     };
     
     // Add signature to parameters
