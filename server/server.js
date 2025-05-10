@@ -93,7 +93,8 @@ app.get('/lazada/callback', async (req, res) => {
     console.log('Token request URL:', `${baseUrl}/auth/token/create`);
     
     // Exchange authorization code for access token
-    const timestamp = Math.floor(Date.now() / 1000);
+    // Lazada requires timestamp in milliseconds
+    const timestamp = Date.now();
     console.log('Using timestamp:', timestamp);
     
     // Create request params
@@ -101,7 +102,7 @@ app.get('/lazada/callback', async (req, res) => {
       app_key: appKey,
       code: code,
       grant_type: 'authorization_code',
-      timestamp: timestamp,
+      timestamp: timestamp.toString(), // Convert to string
       sign_method: 'sha256'
     };
     
