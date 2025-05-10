@@ -92,53 +92,27 @@ app.get('/lazada/callback', async (req, res) => {
     console.log('Exchanging auth code for token using app key:', appKey);
     console.log('Token request URL:', `${baseUrl}/auth/token/create`);
     
-    // Exchange authorization code for access token
-    // Lazada requires timestamp in milliseconds
-    const timestamp = Date.now();
-    console.log('Using timestamp:', timestamp);
+    // According to Lazada API docs, the token endpoint needs application/x-www-form-urlencoded data
+    const tokenParams = new URLSearchParams();
+    tokenParams.append('app_key', appKey);
+    tokenParams.append('app_secret', appSecret);
+    tokenParams.append('code', code);
+    tokenParams.append('grant_type', 'authorization_code');
     
-    // Create request params
-    const requestParams = {
+    console.log('Token request params:', {
       app_key: appKey,
+      app_secret: '[SECRET]',
       code: code,
-      grant_type: 'authorization_code',
-      timestamp: timestamp.toString(), // Convert to string
-      sign_method: 'sha256'
-    };
+      grant_type: 'authorization_code'
+    });
     
-    // Generate signature
-    const createSignature = (params, secret) => {
-      // Sort parameters alphabetically
-      const sortedParams = Object.keys(params).sort().reduce((result, key) => {
-        result[key] = params[key];
-        return result;
-      }, {});
-      
-      // Create string to sign (concatenate key+value pairs)
-      let signString = '';
-      for (const key in sortedParams) {
-        signString += key + sortedParams[key];
+    const response = await axios({
+      method: 'post',
+      url: `${baseUrl}/auth/token/create`,
+      data: tokenParams,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
       }
-      
-      // Create signature using HMAC-SHA256
-      const stringToSign = signString;
-      console.log('String to sign:', stringToSign);
-      
-      // Use HMAC-SHA256 with the app secret as the key
-      return crypto.createHmac('sha256', secret)
-        .update(stringToSign)
-        .digest('hex')
-        .toUpperCase();
-    };
-    
-    // Add signature to parameters
-    const signature = createSignature(requestParams, appSecret);
-    requestParams.sign = signature;
-    
-    console.log('Request parameters with signature:', requestParams);
-    
-    const response = await axios.post(`${baseUrl}/auth/token/create`, null, {
-      params: requestParams
     });
     
     console.log('Token response status:', response.status);
